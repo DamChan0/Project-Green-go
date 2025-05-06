@@ -5,3 +5,4 @@ import {main} from '../models';
 export function GetSystemInfo():Promise<main.SystemInfo>;
 
 export function Greet(arg1:string):Promise<string>;
+

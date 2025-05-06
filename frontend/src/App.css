@@ -1,59 +1,227 @@
-#app {
-    height: 100vh;
-    text-align: center;
+/* style.css 또는 App.css */
+
+/* === 루트 및 기본 셸 스타일 === */
+html {
+    font-size: calc(0.8vw + 0.5em);
+    /* 반응형 기본 폰트 크기 */
 }
 
+#root {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    text-align: center;
+    /* 내부 인라인 요소 중앙 정렬 (주의해서 사용) */
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    /* 기본 폰트 변경 */
+}
+
+#app-shell {
+    height: 100vh;
+    /* #root가 100%이므로, #app-shell도 100%로 해도 무방 */
+    display: flex;
+    flex-direction: column;
+    background-color: rgb(74, 18, 82);
+    /* 지정된 배경색 */
+    color: #f0f0f0;
+}
+
+/* === 드래그 바 및 창 제어 버튼 === */
+.draggable-top-bar {
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.1);
+    /* 시각적 구분 */
+    --wails-draggable: drag;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* 버튼들을 오른쪽으로 */
+    padding: 0 5px;
+    /* 버튼 영역과 창 가장자리 간 약간의 여백 */
+}
+
+.draggable-top-bar {
+    height: 30px;
+    background-color: rgba(0, 0, 0, 0.1);
+    /* 시각적 구분 */
+    --wails-draggable: drag;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    /* 버튼들을 오른쪽으로 */
+    padding: 0 5px;
+    /* 버튼 영역과 창 가장자리 간 약간의 여백 */
+}
+
+@media screen and (-apple-system-font) {
+    .draggable-top-bar {
+        padding-left: 75px;
+        /* macOS 트래픽 라이트 공간 */
+        justify-content: space-between;
+        /* 제목 등을 왼쪽에 둘 경우 */
+    }
+}
+
+.window-controls {
+    display: flex;
+    --wails-draggable: no-drag;
+}
+
+.control-button {
+    background: transparent;
+    border: none;
+    color: #f0f0f0;
+    font-family: "Segoe MDL2 Assets", "Arial Unicode MS", sans-serif;
+    font-size: 12px;
+    width: 40px;
+    height: 30px;
+    line-height: 30px;
+    text-align: center;
+    cursor: pointer;
+    opacity: 0.2;
+    transition: opacity 0.2s ease-in-out, background-color 0.2s ease-in-out;
+    padding: 0;
+    user-select: none;
+}
+
+.draggable-top-bar:hover .control-button {
+    opacity: 0.8;
+}
+
+.control-button:hover {
+    opacity: 0.6;
+    /* 요청하신 값으로 변경 */
+    background-color: rgba(255, 255, 255, 0.048);
+}
+
+.control-button.close-button:hover {
+    background-color: #e81123;
+    color: white;
+}
+
+
+/* === 컨텐츠 스크롤 영역 (통합된 정의) === */
+#app-content-scrollable {
+    flex-grow: 1;
+    /* 남은 공간을 모두 차지 */
+    overflow-x: hidden;
+    /* 가로 스크롤 숨김 */
+    overflow-y: auto;
+    /* 세로 스크롤 필요시 자동 표시 */
+
+    /* 패딩 설정 (하단 여백 확보) */
+    padding-top: 10px;
+    padding-bottom: 20px;
+    /* <<< 값을 조금 더 늘려서 테스트 (예: 20px) */
+    padding-left: 20px;
+    padding-right: 20px;
+
+    display: flex;
+    /* 내부 요소 정렬 */
+    flex-direction: column;
+
+    /* Firefox 스크롤바 스타일 */
+    scrollbar-width: thin;
+    scrollbar-color: rgba(120, 120, 120, 0.6) rgba(60, 60, 60, 0.3);
+}
+
+/* === 웹킷 브라우저 스크롤바 스타일 === */
+#app-content-scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+#app-content-scrollable::-webkit-scrollbar-track {
+    background: rgba(60, 60, 60, 0.3);
+    border-radius: 10px;
+    margin-top: 10px;
+    /* 트랙 상단 여백 */
+    margin-bottom: 10px;
+    /* 트랙 하단 여백 */
+}
+
+#app-content-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(120, 120, 120, 0.6);
+    border-radius: 10px;
+}
+
+#app-content-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(150, 150, 150, 0.8);
+}
+
+
+/* === 컨텐츠 내부 요소 스타일 (반응형 폰트 등) === */
+#app-content-scrollable h1 {
+    font-size: clamp(1.8rem, 2.8vw, 2.5rem);
+    /* clamp 값 미세 조정 */
+    margin-top: 1vh;
+    margin-bottom: 2vh;
+    color: #0bc568;
+}
+
+#app-content-scrollable h2 {
+    font-size: clamp(1.4rem, 2.2vw, 2rem);
+    /* clamp 값 미세 조정 */
+    margin-bottom: 1vh;
+}
+
+#app-content-scrollable p,
+#app-content-scrollable details {
+    font-size: 14.4px;
+    /* 고정 값으로 유지 요청하셨던 부분 */
+    line-height: 1.6;
+}
+
+#app-content-scrollable section {
+    margin-bottom: clamp(10px, 2vh, 20px);
+    padding-bottom: clamp(10px, 2vh, 20px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    /* 구분선 색상 조정 */
+}
+
+#app-content-scrollable details p {
+    font-size: clamp(0.8rem, 1.3vw, 1rem);
+    /* 내부 p 태그는 반응형 유지 */
+    word-break: break-word;
+}
+
+/* === 미디어 쿼리 === */
+@media (max-width: 768px) {
+    #app-content-scrollable section {
+        margin-bottom: 10px;
+        padding-bottom: 10px;
+    }
+
+    /* 필요시 다른 스타일 조정 */
+}
+
+/* === 기타 스타일 (logo, result, input-box 등) === */
+/* 이 부분은 현재 문제와 직접적인 관련은 없지만, 필요시 유지합니다. */
 #logo {
-    display: block;
-    width: 50%;
-    height: 50%;
-    margin: auto;
-    padding: 10% 0 0;
-    background-position: center;
-    background-repeat: no-repeat;
-    background-size: 100% 100%;
-    background-origin: content-box;
+    /* ... */
 }
 
 .result {
-    height: 20px;
-    line-height: 20px;
-    margin: 1.5rem auto;
+    /* ... */
 }
 
 .input-box .btn {
-    width: 60px;
-    height: 30px;
-    line-height: 30px;
-    border-radius: 3px;
-    border: none;
-    margin: 0 0 0 20px;
-    padding: 0 8px;
-    cursor: pointer;
+    /* ... */
 }
 
 .input-box .btn:hover {
-    background-image: linear-gradient(to top, #cfd9df 0%, #e2ebf0 100%);
-    color: #333333;
+    /* ... */
 }
 
 .input-box .input {
-    border: none;
-    border-radius: 3px;
-    outline: none;
-    height: 30px;
-    line-height: 30px;
-    padding: 0 10px;
-    background-color: rgba(240, 240, 240, 1);
-    -webkit-font-smoothing: antialiased;
+    /* ... */
 }
 
 .input-box .input:hover {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
+    /* ... */
 }
 
 .input-box .input:focus {
-    border: none;
-    background-color: rgba(255, 255, 255, 1);
+    /* ... */
 }
