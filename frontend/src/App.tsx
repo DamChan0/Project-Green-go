@@ -1,138 +1,239 @@
-import React, { useState, useEffect } from 'react';
-// Wails 런타임 함수를 import 합니다. 경로가 정확한지 확인하세요.
-import { WindowMinimise, WindowToggleMaximise, Quit } from '../wailsjs/runtime/runtime';
-import { GetSystemInfo } from '../wailsjs/go/main/App';
-import { main } from '../wailsjs/go/models';
+import React, { useState, useEffect } from "react";
+import {
+    WindowMinimise,
+    WindowToggleMaximise,
+    Quit,
+} from "../wailsjs/runtime/runtime";
+import { GetSystemInfo } from "../wailsjs/go/main/App";
+import { main } from "../wailsjs/go/models";
 
-// CSS 파일을 import 합니다.
-import './App.css'; // 또는 './style.css'
+import "./App.css";
+import ProgressBar from "./components/ProgressBar";
+import ProgressBarSettingsPanel from "./components/ProgressBarSettingPanel";
+import { ProgressBarConfig } from "./config/progressConfig";
 
 function App() {
-  const [systemInfo, setSystemInfo] = useState<main.SystemInfo | null>(null);
-  const [error, setError] = useState<string | null>(null);
+    const [systemInfo, setSystemInfo] = useState<main.SystemInfo | null>(null);
+    const [error, setError] = useState<string | null>(null);
+    const [verticalMode, setVerticalMode] = useState(false);
 
-  useEffect(() => {
-    const fetchSystemInfo = async () => {
-      try {
-        const info: main.SystemInfo = await GetSystemInfo();
-        setSystemInfo(info);
-        setError(null);
-      } catch (err) {
-        console.error("Error getting system info:", err);
-        setError("Failed to load system info.");
-      }
+    const [barConfig, setBarConfig] = useState<ProgressBarConfig>({
+        compactMode: true,
+        animated: true,
+        colorMode: "multi",
+        barColor: "#0bc568",
+    });
+
+    useEffect(() => {
+        const fetchSystemInfo = async () => {
+            try {
+                const info: main.SystemInfo = await GetSystemInfo();
+                setSystemInfo(info);
+                setError(null);
+            } catch (err) {
+                console.error("Error getting system info:", err);
+                setError("Failed to load system info.");
+            }
+        };
+
+        fetchSystemInfo();
+        const intervalId = setInterval(fetchSystemInfo, 1000);
+        return () => clearInterval(intervalId);
+    }, []);
+
+    const appShellStyle: React.CSSProperties = {
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
     };
 
-    fetchSystemInfo();
-    const intervalId = setInterval(fetchSystemInfo, 1000);
-    return () => clearInterval(intervalId);
-  }, []);
+    const contentAreaStyle: React.CSSProperties = {
+        flexGrow: 1,
+        overflowY: "auto",
+        padding: "20px",
+    };
 
-  const appShellStyle: React.CSSProperties = {
-    height: '100vh',
-    display: 'flex',
-    flexDirection: 'column',
-  };
+    return (
+        <div id='app-shell' style={appShellStyle}>
+            <div className='draggable-top-bar'>
+                {/* 왼쪽: 회전 버튼 */}
+                <div
+                    className='window-controls'
+                    style={{ marginRight: "auto" }}
+                >
+                    <button
+                        className='control-button'
+                        onClick={() => setVerticalMode((prev) => !prev)}
+                        title='Toggle Orientation'
+                    >
+                        ↻
+                    </button>
+                </div>
 
-  const contentAreaStyle: React.CSSProperties = {
-    flexGrow: 1,
-    overflowY: 'auto',
-    padding: '20px',
-  };
+                {/* 오른쪽: 창 제어 버튼 */}
+                <div className='window-controls'>
+                    <button
+                        className='control-button minimize-button'
+                        onClick={() => WindowMinimise()}
+                        title='Minimize'
+                    >
+                        _
+                    </button>
+                    <button
+                        className='control-button maximize-button'
+                        onClick={() => WindowToggleMaximise()}
+                        title='Maximize/Restore'
+                    >
+                        ▢
+                    </button>
+                    <button
+                        className='control-button close-button'
+                        onClick={() => Quit()}
+                        title='Close'
+                    >
+                        ✕
+                    </button>
+                </div>
+            </div>
 
-  return (
-    <div id="app-shell" style={appShellStyle}>
-      <div className="draggable-top-bar">
-        {/* 앱 제목 등 추가 가능 (선택 사항) */}
-        {/* <div className="app-title">PC System Monitor</div> */}
+            <div id='app-content-scrollable' style={contentAreaStyle}>
+                {error && (
+                    <div style={{ color: "red", paddingBottom: "10px" }}>
+                        Error: {error}
+                    </div>
+                )}
+                {!systemInfo && !error && (
+                    <div>Loading system information...</div>
+                )}
 
-        {/* 창 제어 버튼들을 담을 컨테이너 */}
-        <div className="window-controls">
-          <button
-            className="control-button minimize-button"
-            onClick={() => WindowMinimise()}
-            title="Minimize"
-          >
-            {/* 간단한 텍스트 또는 아이콘 SVG/폰트 */}
-            _
-          </button>
-          <button
-            className="control-button maximize-button"
-            onClick={() => WindowToggleMaximise()}
-            title="Maximize/Restore"
-          >
-            {/* 간단한 텍스트 또는 아이콘 SVG/폰트 */}
-            ▢
-          </button>
-          <button
-            className="control-button close-button"
-            onClick={() => Quit()}
-            title="Close"
-          >
-            {/* 간단한 텍스트 또는 아이콘 SVG/폰트 */}
-            ✕
-          </button>
+                {systemInfo && (
+                    <>
+                        <h1>PC System Monitor</h1>
+
+                        {/* 설정 패널 */}
+                        <ProgressBarSettingsPanel
+                            config={barConfig}
+                            setConfig={setBarConfig}
+                        />
+
+                        {/* CPU */}
+                        <section
+                            style={{
+                                marginBottom: "20px",
+                                borderBottom: "1px solid #eee",
+                                paddingBottom: "10px",
+                            }}
+                        >
+                            <h2>CPU</h2>
+                            <p>
+                                <strong>Average Usage:</strong>{" "}
+                                {systemInfo.cpu_usage_average?.toFixed(2)}%
+                            </p>
+                            <p>
+                                <strong>Threads:</strong>{" "}
+                                {systemInfo.cpu_usage_per_thread?.length}
+                            </p>
+
+                            <ProgressBar
+                                label='CPU Avg Usage'
+                                percentage={systemInfo.cpu_usage_average}
+                                vertical={verticalMode}
+                                compact={barConfig.compactMode}
+                                config={barConfig}
+                                variant='main' // ✅ main bar로 설정
+                            />
+
+                            {/* 각 스레드별 ProgressBar */}
+                            <div
+                                style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    marginBottom: "18px", // ✅ 추가로 하단 간격 확보
+                                    gap: "12px",
+                                    justifyContent: "flex-start",
+                                }}
+                            >
+                                {systemInfo.cpu_usage_per_thread?.map(
+                                    (usage, index) => (
+                                        <div
+                                            key={index}
+                                            style={{
+                                                flexBasis: verticalMode
+                                                    ? "auto"
+                                                    : "calc(33.33% - 8px)",
+                                                display: "flex",
+                                                flexDirection: "column",
+                                                alignItems: "center",
+                                            }}
+                                        >
+                                            <ProgressBar
+                                                label={`T${index}`}
+                                                percentage={usage}
+                                                vertical={verticalMode}
+                                                compact={barConfig.compactMode} // ✅ 수정 포인트
+                                                config={barConfig}
+                                            />
+                                        </div>
+                                    )
+                                )}
+                            </div>
+                        </section>
+
+                        {/* Memory */}
+                        <section
+                            style={{
+                                marginBottom: "20px",
+                                borderBottom: "1px solid #eee",
+                                paddingBottom: "10px",
+                            }}
+                        >
+                            <h2>Memory (RAM)</h2>
+                            <p>
+                                <strong>Usage:</strong>{" "}
+                                {systemInfo.memory_usage_percent?.toFixed(2)}%
+                            </p>
+                            <p>
+                                <strong>Capacity:</strong>{" "}
+                                {systemInfo.memory_used_gb?.toFixed(2)} GB Used
+                                / {systemInfo.memory_total_gb?.toFixed(2)} GB
+                                Total
+                            </p>
+
+                            <ProgressBar
+                                label='Memory Usage'
+                                percentage={systemInfo.memory_usage_percent}
+                                vertical={verticalMode}
+                                compact={barConfig.compactMode}
+                                config={barConfig}
+                            />
+                        </section>
+
+                        {/* Disk */}
+                        <section>
+                            <h2>Disk (Root /)</h2>
+                            <p>
+                                <strong>Usage:</strong>{" "}
+                                {systemInfo.disk_usage_percent?.toFixed(2)}%
+                            </p>
+                            <p>
+                                <strong>Capacity:</strong>{" "}
+                                {systemInfo.disk_used_gb?.toFixed(2)} GB Used /{" "}
+                                {systemInfo.disk_total_gb?.toFixed(2)} GB Total
+                            </p>
+
+                            <ProgressBar
+                                label='Disk Usage'
+                                percentage={systemInfo.disk_usage_percent}
+                                vertical={verticalMode}
+                                compact={barConfig.compactMode}
+                                config={barConfig}
+                            />
+                        </section>
+                    </>
+                )}
+            </div>
         </div>
-      </div>
-
-      <div id="app-content-scrollable" style={contentAreaStyle}>
-        {error && <div style={{ color: 'red', paddingBottom: '10px' }}>Error: {error}</div>}
-        {!systemInfo && !error && <div>Loading system information...</div>}
-        {systemInfo && (
-          <>
-            <h1>PC System Monitor</h1>
-            {/* CPU, Memory, Disk 정보 섹션 (이전과 동일) */}
-            <section style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-              <h2>CPU</h2>
-              <p>
-                <strong>Average Usage:</strong>{' '}
-                {systemInfo.cpu_usage_average?.toFixed(2) ?? 'N/A'}%
-              </p>
-              <p>
-                <strong>Threads:</strong>{' '}
-                {systemInfo.cpu_usage_per_thread?.length ?? 'N/A'}
-              </p>
-              <details>
-                <summary style={{ cursor: 'pointer' }}><strong>Usage Per Thread (%)</strong></summary>
-                <p style={{ fontSize: '0.9em', wordBreak: 'break-word', lineHeight: '1.6' }}>
-                  {systemInfo.cpu_usage_per_thread
-                    ?.map((usage, index) => `T${index}: ${usage.toFixed(2)}`)
-                    ?.join('%, ') ?? 'N/A'}
-                  {systemInfo.cpu_usage_per_thread?.length > 0 ? '%' : ''}
-                </p>
-              </details>
-            </section>
-
-            <section style={{ marginBottom: '20px', borderBottom: '1px solid #eee', paddingBottom: '10px' }}>
-              <h2>Memory (RAM)</h2>
-              <p>
-                <strong>Usage:</strong>{' '}
-                {systemInfo.memory_usage_percent?.toFixed(2) ?? 'N/A'}%
-              </p>
-              <p>
-                <strong>Capacity:</strong>{' '}
-                {systemInfo.memory_used_gb?.toFixed(2) ?? 'N/A'} GB Used /{' '}
-                {systemInfo.memory_total_gb?.toFixed(2) ?? 'N/A'} GB Total
-              </p>
-            </section>
-
-            <section>
-              <h2>Disk (Root /)</h2>
-              <p>
-                <strong>Usage:</strong>{' '}
-                {systemInfo.disk_usage_percent?.toFixed(2) ?? 'N/A'}%
-              </p>
-              <p>
-                <strong>Capacity:</strong>{' '}
-                {systemInfo.disk_used_gb?.toFixed(2) ?? 'N/A'} GB Used /{' '}
-                {systemInfo.disk_total_gb?.toFixed(2) ?? 'N/A'} GB Total
-              </p>
-            </section>
-          </>
-        )}
-      </div>
-    </div>
-  );
+    );
 }
 
 export default App;
