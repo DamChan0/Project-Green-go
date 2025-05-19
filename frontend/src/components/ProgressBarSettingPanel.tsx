@@ -13,10 +13,10 @@ const ProgressBarSettingsPanel: React.FC<SettingsPanelProps> = ({
     return (
         <div
             style={{
-                backgroundColor: "#222",
+                backgroundColor: "#223",
                 padding: "12px",
                 borderRadius: "8px",
-                marginBottom: "20px",
+                marginBottom: "1px",
                 color: "#eee",
                 fontSize: "0.9rem",
             }}

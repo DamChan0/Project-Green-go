@@ -1,7 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
     WindowMinimise,
     WindowToggleMaximise,
+    WindowGetSize,
+    WindowSetSize,
     Quit,
 } from "../wailsjs/runtime/runtime";
 import { GetSystemInfo } from "../wailsjs/go/main/App";
@@ -13,10 +15,13 @@ import ProgressBarSettingsPanel from "./components/ProgressBarSettingPanel";
 import { ProgressBarConfig } from "./config/progressConfig";
 
 function App() {
+    // ─ 시스템 정보 상태
     const [systemInfo, setSystemInfo] = useState<main.SystemInfo | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [verticalMode, setVerticalMode] = useState(false);
 
+    // ─ UI 상태
+    const [verticalMode, setVerticalMode] = useState(false);
+    const [settingsVisible, setSettingsVisible] = useState(false);
     const [barConfig, setBarConfig] = useState<ProgressBarConfig>({
         compactMode: true,
         animated: true,
@@ -24,30 +29,64 @@ function App() {
         barColor: "#0bc568",
     });
 
+    // ─ 리사이즈 제어용 refs
+    const handleRef = useRef<HTMLDivElement>(null);
+    const isResizingRef = useRef(false);
+    const startMouse = useRef({ x: 0, y: 0 });
+    const startSize = useRef({ w: 0, h: 0 });
+
+    // ─ 1초마다 시스템 정보 갱신
     useEffect(() => {
         const fetchSystemInfo = async () => {
             try {
-                const info: main.SystemInfo = await GetSystemInfo();
+                const info = await GetSystemInfo();
                 setSystemInfo(info);
                 setError(null);
-            } catch (err) {
-                console.error("Error getting system info:", err);
-                setError("Failed to load system info.");
+            } catch {
+                setError("시스템 정보를 불러오지 못했습니다.");
             }
         };
-
         fetchSystemInfo();
-        const intervalId = setInterval(fetchSystemInfo, 1000);
-        return () => clearInterval(intervalId);
+        const id = setInterval(fetchSystemInfo, 1000);
+        return () => clearInterval(id);
     }, []);
 
+    // ─ 포인터 이벤트 핸들러
+    const onPointerDown = async (e: React.PointerEvent<HTMLDivElement>) => {
+        e.preventDefault();
+        // 포인터 캡처 시작 (포인터가 요소를 벗어나도 이벤트 보장)
+        handleRef.current?.setPointerCapture(e.pointerId);
+        isResizingRef.current = true;
+        startMouse.current = { x: e.clientX, y: e.clientY };
+        const size = await WindowGetSize();
+        startSize.current = { w: size.w, h: size.h };
+    };
+
+    const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+        if (!isResizingRef.current) return;
+        const dx = e.clientX - startMouse.current.x;
+        const dy = e.clientY - startMouse.current.y;
+        const newW = Math.max(startSize.current.w + dx, 400);
+        const newH = Math.max(startSize.current.h + dy, 300);
+        WindowSetSize(newW, newH);
+    };
+
+    const onPointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+        isResizingRef.current = false;
+        handleRef.current?.releasePointerCapture(e.pointerId);
+    };
+
+    // ─ 레이아웃 스타일
     const appShellStyle: React.CSSProperties = {
+        position: "relative",
+        width: "100vw",
         height: "100vh",
         display: "flex",
         flexDirection: "column",
+        backgroundColor: "rgb(74, 18, 82)",
+        color: "#f0f0f0",
     };
-
-    const contentAreaStyle: React.CSSProperties = {
+    const contentStyle: React.CSSProperties = {
         flexGrow: 1,
         overflowY: "auto",
         padding: "20px",
@@ -55,40 +94,38 @@ function App() {
 
     return (
         <div id='app-shell' style={appShellStyle}>
+            {/* 상단 드래그 바 */}
             <div className='draggable-top-bar'>
-                {/* 왼쪽: 회전 버튼 */}
                 <div
                     className='window-controls'
                     style={{ marginRight: "auto" }}
                 >
                     <button
                         className='control-button'
-                        onClick={() => setVerticalMode((prev) => !prev)}
+                        onClick={() => setVerticalMode((v) => !v)}
                         title='Toggle Orientation'
                     >
                         ↻
                     </button>
                 </div>
-
-                {/* 오른쪽: 창 제어 버튼 */}
                 <div className='window-controls'>
                     <button
                         className='control-button minimize-button'
-                        onClick={() => WindowMinimise()}
+                        onClick={WindowMinimise}
                         title='Minimize'
                     >
                         _
                     </button>
                     <button
                         className='control-button maximize-button'
-                        onClick={() => WindowToggleMaximise()}
+                        onClick={WindowToggleMaximise}
                         title='Maximize/Restore'
                     >
                         ▢
                     </button>
                     <button
                         className='control-button close-button'
-                        onClick={() => Quit()}
+                        onClick={Quit}
                         title='Close'
                     >
                         ✕
@@ -96,12 +133,9 @@ function App() {
                 </div>
             </div>
 
-            <div id='app-content-scrollable' style={contentAreaStyle}>
-                {error && (
-                    <div style={{ color: "red", paddingBottom: "10px" }}>
-                        Error: {error}
-                    </div>
-                )}
+            {/* 콘텐츠 영역 */}
+            <div id='app-content-scrollable' style={contentStyle}>
+                {error && <div style={{ color: "red" }}>{error}</div>}
                 {!systemInfo && !error && (
                     <div>Loading system information...</div>
                 )}
@@ -109,19 +143,42 @@ function App() {
                 {systemInfo && (
                     <>
                         <h1>PC System Monitor</h1>
-
-                        {/* 설정 패널 */}
-                        <ProgressBarSettingsPanel
-                            config={barConfig}
-                            setConfig={setBarConfig}
-                        />
+                        <div
+                            style={{
+                                display: "flex",
+                                alignItems: "center",
+                                marginBottom: 8,
+                            }}
+                        >
+                            <button
+                                className='control-button expand-button'
+                                onClick={() => setSettingsVisible((v) => !v)}
+                                title={
+                                    settingsVisible
+                                        ? "설정 숨기기"
+                                        : "설정 표시"
+                                }
+                                style={{ width: 30, height: 30, opacity: 0.6 }}
+                            >
+                                {settingsVisible ? "▲" : "▼"}
+                            </button>
+                            <span style={{ marginLeft: 8, fontWeight: 600 }}>
+                                ProgressBar 설정
+                            </span>
+                        </div>
+                        {settingsVisible && (
+                            <ProgressBarSettingsPanel
+                                config={barConfig}
+                                setConfig={setBarConfig}
+                            />
+                        )}
 
                         {/* CPU */}
                         <section
                             style={{
-                                marginBottom: "20px",
+                                marginBottom: 20,
                                 borderBottom: "1px solid #eee",
-                                paddingBottom: "10px",
+                                paddingBottom: 10,
                             }}
                         >
                             <h2>CPU</h2>
@@ -133,44 +190,38 @@ function App() {
                                 <strong>Threads:</strong>{" "}
                                 {systemInfo.cpu_usage_per_thread?.length}
                             </p>
-
                             <ProgressBar
                                 label='CPU Avg Usage'
-                                percentage={systemInfo.cpu_usage_average}
+                                percentage={systemInfo.cpu_usage_average || 0}
                                 vertical={verticalMode}
                                 compact={barConfig.compactMode}
                                 config={barConfig}
-                                variant='main' // ✅ main bar로 설정
+                                variant='main'
                             />
-
-                            {/* 각 스레드별 ProgressBar */}
                             <div
                                 style={{
                                     display: "flex",
                                     flexWrap: "wrap",
-                                    marginBottom: "18px", // ✅ 추가로 하단 간격 확보
-                                    gap: "12px",
-                                    justifyContent: "flex-start",
+                                    gap: 12,
+                                    marginTop: 12,
                                 }}
                             >
                                 {systemInfo.cpu_usage_per_thread?.map(
-                                    (usage, index) => (
+                                    (u, i) => (
                                         <div
-                                            key={index}
+                                            key={i}
                                             style={{
                                                 flexBasis: verticalMode
                                                     ? "auto"
                                                     : "calc(33.33% - 8px)",
-                                                display: "flex",
-                                                flexDirection: "column",
-                                                alignItems: "center",
+                                                textAlign: "center",
                                             }}
                                         >
                                             <ProgressBar
-                                                label={`T${index}`}
-                                                percentage={usage}
+                                                label={`T${i}`}
+                                                percentage={u}
                                                 vertical={verticalMode}
-                                                compact={barConfig.compactMode} // ✅ 수정 포인트
+                                                compact={barConfig.compactMode}
                                                 config={barConfig}
                                             />
                                         </div>
@@ -182,9 +233,9 @@ function App() {
                         {/* Memory */}
                         <section
                             style={{
-                                marginBottom: "20px",
+                                marginBottom: 20,
                                 borderBottom: "1px solid #eee",
-                                paddingBottom: "10px",
+                                paddingBottom: 10,
                             }}
                         >
                             <h2>Memory (RAM)</h2>
@@ -194,14 +245,14 @@ function App() {
                             </p>
                             <p>
                                 <strong>Capacity:</strong>{" "}
-                                {systemInfo.memory_used_gb?.toFixed(2)} GB Used
-                                / {systemInfo.memory_total_gb?.toFixed(2)} GB
-                                Total
+                                {systemInfo.memory_used_gb?.toFixed(2)} GB /{" "}
+                                {systemInfo.memory_total_gb?.toFixed(2)} GB
                             </p>
-
                             <ProgressBar
                                 label='Memory Usage'
-                                percentage={systemInfo.memory_usage_percent}
+                                percentage={
+                                    systemInfo.memory_usage_percent || 0
+                                }
                                 vertical={verticalMode}
                                 compact={barConfig.compactMode}
                                 config={barConfig}
@@ -217,13 +268,12 @@ function App() {
                             </p>
                             <p>
                                 <strong>Capacity:</strong>{" "}
-                                {systemInfo.disk_used_gb?.toFixed(2)} GB Used /{" "}
-                                {systemInfo.disk_total_gb?.toFixed(2)} GB Total
+                                {systemInfo.disk_used_gb?.toFixed(2)} GB /{" "}
+                                {systemInfo.disk_total_gb?.toFixed(2)} GB
                             </p>
-
                             <ProgressBar
                                 label='Disk Usage'
-                                percentage={systemInfo.disk_usage_percent}
+                                percentage={systemInfo.disk_usage_percent || 0}
                                 vertical={verticalMode}
                                 compact={barConfig.compactMode}
                                 config={barConfig}
@@ -232,6 +282,15 @@ function App() {
                     </>
                 )}
             </div>
+
+            {/* 리사이즈 핸들 */}
+            <div
+                ref={handleRef}
+                className='resize-handle'
+                onPointerDown={onPointerDown}
+                onPointerMove={onPointerMove}
+                onPointerUp={onPointerUp}
+            />
         </div>
     );
 }

@@ -98,7 +98,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({
                         left: 0,
                         top: 0,
                         width: `${percentage}%`,
-                        height: "100%",
+                        height: `${mainBarStyle.height}`,
                         backgroundColor: color,
                         borderRadius: "10px",
                         transition: config.animated

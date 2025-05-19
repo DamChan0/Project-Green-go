@@ -6,13 +6,26 @@ html {
     /* 반응형 기본 폰트 크기 */
 }
 
+/* 설정 패널 애니메이션 스타일 */
+.settings-panel {
+    overflow: hidden;
+    border-radius: 8px;
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.settings-panel.open {
+    padding: 12px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 #root {
     height: 100%;
     margin: 0;
     padding: 0;
     text-align: center;
     /* 내부 인라인 요소 중앙 정렬 (주의해서 사용) */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     /* 기본 폰트 변경 */
 }
 
@@ -101,7 +114,6 @@ html {
     color: white;
 }
 
-
 /* === 컨텐츠 스크롤 영역 (통합된 정의) === */
 #app-content-scrollable {
     flex-grow: 1;
@@ -149,7 +161,6 @@ html {
 #app-content-scrollable::-webkit-scrollbar-thumb:hover {
     background: rgba(150, 150, 150, 0.8);
 }
-
 
 /* === 컨텐츠 내부 요소 스타일 (반응형 폰트 등) === */
 #app-content-scrollable h1 {
@@ -224,4 +235,38 @@ html {
 
 .input-box .input:focus {
     /* ... */
+}
+
+/* === 창 크기 조절 핸들 === */
+.resize-handle {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    width: 35px;
+    height: 35px;
+    /* 삼각형 모양 clip-path */
+    clip-path: polygon(100% 0, 0 100%, 100% 100%);
+    background-color: #e81123;
+    cursor: nwse-resize;
+    z-index: 1000;
+}
+
+.resize-handle:hover svg {
+    fill: rgba(255, 255, 255, 0.6);
+}
+
+/* 드래그 중에는 투명 오버레이를 표시하여 드래그 이벤트 캡처 */
+body.resizing {
+    cursor: nwse-resize;
+}
+
+body.resizing::after {
+    content: "";
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 999;
+    pointer-events: none;
 }
