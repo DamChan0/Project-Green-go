@@ -12,6 +12,7 @@ import { main } from "../wailsjs/go/models";
 import "./App.css";
 import ProgressBar from "./components/ProgressBar";
 import ProgressBarSettingsPanel from "./components/ProgressBarSettingPanel";
+import Tab from "./components/Tab";
 import { ProgressBarConfig } from "./config/progressConfig";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
     // ─ UI 상태
     const [verticalMode, setVerticalMode] = useState(false);
     const [settingsVisible, setSettingsVisible] = useState(false);
+    const [activeTab, setActiveTab] = useState("cpu");
     const [barConfig, setBarConfig] = useState<ProgressBarConfig>({
         compactMode: true,
         animated: true,
@@ -75,6 +77,101 @@ function App() {
         isResizingRef.current = false;
         handleRef.current?.releasePointerCapture(e.pointerId);
     };
+
+    // ─ 탭 컨텐츠 렌더링 함수들
+    const renderCpuContent = () => (
+        <section>
+            <h2>CPU</h2>
+            <p>
+                <strong>Average Usage:</strong>{" "}
+                {systemInfo?.cpu_usage_average?.toFixed(2)}%
+            </p>
+            <p>
+                <strong>Threads:</strong>{" "}
+                {systemInfo?.cpu_usage_per_thread?.length}
+            </p>
+            <ProgressBar
+                label='CPU Avg Usage'
+                percentage={systemInfo?.cpu_usage_average || 0}
+                vertical={verticalMode}
+                compact={barConfig.compactMode}
+                config={barConfig}
+                variant='main'
+            />
+            <div
+                style={{
+                    display: "flex",
+                    flexWrap: "wrap",
+                    gap: 12,
+                    marginTop: 12,
+                }}
+            >
+                {systemInfo?.cpu_usage_per_thread?.map((u, i) => (
+                    <div
+                        key={i}
+                        style={{
+                            flexBasis: verticalMode
+                                ? "auto"
+                                : "calc(33.33% - 8px)",
+                            textAlign: "center",
+                        }}
+                    >
+                        <ProgressBar
+                            label={`T${i}`}
+                            percentage={u}
+                            vertical={verticalMode}
+                            compact={barConfig.compactMode}
+                            config={barConfig}
+                        />
+                    </div>
+                ))}
+            </div>
+        </section>
+    );
+
+    const renderMemoryContent = () => (
+        <section>
+            <h2>Memory (RAM)</h2>
+            <p>
+                <strong>Usage:</strong>{" "}
+                {systemInfo?.memory_usage_percent?.toFixed(2)}%
+            </p>
+            <p>
+                <strong>Capacity:</strong>{" "}
+                {systemInfo?.memory_used_gb?.toFixed(2)} GB /{" "}
+                {systemInfo?.memory_total_gb?.toFixed(2)} GB
+            </p>
+            <ProgressBar
+                label='Memory Usage'
+                percentage={systemInfo?.memory_usage_percent || 0}
+                vertical={verticalMode}
+                compact={barConfig.compactMode}
+                config={barConfig}
+            />
+        </section>
+    );
+
+    const renderDiskContent = () => (
+        <section>
+            <h2>Disk (Root /)</h2>
+            <p>
+                <strong>Usage:</strong>{" "}
+                {systemInfo?.disk_usage_percent?.toFixed(2)}%
+            </p>
+            <p>
+                <strong>Capacity:</strong>{" "}
+                {systemInfo?.disk_used_gb?.toFixed(2)} GB /{" "}
+                {systemInfo?.disk_total_gb?.toFixed(2)} GB
+            </p>
+            <ProgressBar
+                label='Disk Usage'
+                percentage={systemInfo?.disk_usage_percent || 0}
+                vertical={verticalMode}
+                compact={barConfig.compactMode}
+                config={barConfig}
+            />
+        </section>
+    );
 
     // ─ 레이아웃 스타일
     const appShellStyle: React.CSSProperties = {
@@ -173,112 +270,27 @@ function App() {
                             />
                         )}
 
-                        {/* CPU */}
-                        <section
-                            style={{
-                                marginBottom: 20,
-                                borderBottom: "1px solid #eee",
-                                paddingBottom: 10,
-                            }}
-                        >
-                            <h2>CPU</h2>
-                            <p>
-                                <strong>Average Usage:</strong>{" "}
-                                {systemInfo.cpu_usage_average?.toFixed(2)}%
-                            </p>
-                            <p>
-                                <strong>Threads:</strong>{" "}
-                                {systemInfo.cpu_usage_per_thread?.length}
-                            </p>
-                            <ProgressBar
-                                label='CPU Avg Usage'
-                                percentage={systemInfo.cpu_usage_average || 0}
-                                vertical={verticalMode}
-                                compact={barConfig.compactMode}
-                                config={barConfig}
-                                variant='main'
-                            />
-                            <div
-                                style={{
-                                    display: "flex",
-                                    flexWrap: "wrap",
-                                    gap: 12,
-                                    marginTop: 12,
-                                }}
-                            >
-                                {systemInfo.cpu_usage_per_thread?.map(
-                                    (u, i) => (
-                                        <div
-                                            key={i}
-                                            style={{
-                                                flexBasis: verticalMode
-                                                    ? "auto"
-                                                    : "calc(33.33% - 8px)",
-                                                textAlign: "center",
-                                            }}
-                                        >
-                                            <ProgressBar
-                                                label={`T${i}`}
-                                                percentage={u}
-                                                vertical={verticalMode}
-                                                compact={barConfig.compactMode}
-                                                config={barConfig}
-                                            />
-                                        </div>
-                                    )
-                                )}
-                            </div>
-                        </section>
-
-                        {/* Memory */}
-                        <section
-                            style={{
-                                marginBottom: 20,
-                                borderBottom: "1px solid #eee",
-                                paddingBottom: 10,
-                            }}
-                        >
-                            <h2>Memory (RAM)</h2>
-                            <p>
-                                <strong>Usage:</strong>{" "}
-                                {systemInfo.memory_usage_percent?.toFixed(2)}%
-                            </p>
-                            <p>
-                                <strong>Capacity:</strong>{" "}
-                                {systemInfo.memory_used_gb?.toFixed(2)} GB /{" "}
-                                {systemInfo.memory_total_gb?.toFixed(2)} GB
-                            </p>
-                            <ProgressBar
-                                label='Memory Usage'
-                                percentage={
-                                    systemInfo.memory_usage_percent || 0
-                                }
-                                vertical={verticalMode}
-                                compact={barConfig.compactMode}
-                                config={barConfig}
-                            />
-                        </section>
-
-                        {/* Disk */}
-                        <section>
-                            <h2>Disk (Root /)</h2>
-                            <p>
-                                <strong>Usage:</strong>{" "}
-                                {systemInfo.disk_usage_percent?.toFixed(2)}%
-                            </p>
-                            <p>
-                                <strong>Capacity:</strong>{" "}
-                                {systemInfo.disk_used_gb?.toFixed(2)} GB /{" "}
-                                {systemInfo.disk_total_gb?.toFixed(2)} GB
-                            </p>
-                            <ProgressBar
-                                label='Disk Usage'
-                                percentage={systemInfo.disk_usage_percent || 0}
-                                vertical={verticalMode}
-                                compact={barConfig.compactMode}
-                                config={barConfig}
-                            />
-                        </section>
+                        <Tab
+                            tabs={[
+                                {
+                                    id: "cpu",
+                                    label: "CPU",
+                                    content: renderCpuContent(),
+                                },
+                                {
+                                    id: "memory",
+                                    label: "Memory",
+                                    content: renderMemoryContent(),
+                                },
+                                {
+                                    id: "disk",
+                                    label: "Disk",
+                                    content: renderDiskContent(),
+                                },
+                            ]}
+                            activeTab={activeTab}
+                            onTabChange={setActiveTab}
+                        />
                     </>
                 )}
             </div>

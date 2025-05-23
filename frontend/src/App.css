@@ -270,3 +270,62 @@ body.resizing::after {
     z-index: 999;
     pointer-events: none;
 }
+
+/* === 탭 스타일 === */
+.tab-container {
+    margin-top: 20px;
+}
+
+.tab-headers {
+    display: flex;
+    background-color: rgba(0, 0, 0, 0.2);
+    border-radius: 8px 8px 0 0;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.tab-header {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: #f0f0f0;
+    padding: 12px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
+    border-right: 1px solid rgba(255, 255, 255, 0.1);
+    user-select: none;
+}
+
+.tab-header:last-child {
+    border-right: none;
+}
+
+.tab-header:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+}
+
+.tab-header.active {
+    background-color: #0bc568;
+    color: white;
+    font-weight: 600;
+}
+
+.tab-content {
+    background-color: rgba(0, 0, 0, 0.1);
+    border-radius: 0 0 8px 8px;
+    padding: 20px;
+    min-height: 200px;
+}
+
+/* 탭 내용 섹션 스타일 조정 */
+.tab-content section {
+    margin-bottom: 20px;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.tab-content section:last-child {
+    margin-bottom: 0;
+}
